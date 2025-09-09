@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "PocketCoffer",
+    "slogan": "A light and secure local pocket coffer",
+    "windowTitle": "PocketCoffer"
+  },
+  "home": {
+    "get_started": "Get started by editing",
+    "save_see": "Save and see your changes instantly.",
+    "deploy_now": "Deploy now",
+    "read_docs": "Read our docs",
+    "learn": "Learn",
+    "examples": "Examples",
+    "goto_next": "Go to nextjs.org →"
+  },
+  "common": {
+    "language": {
+      "zh": "中文",
+      "en": "English"
+    }
+  }
+}

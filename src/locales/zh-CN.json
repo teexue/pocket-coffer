@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "方寸匣",
+    "slogan": "轻量、安全的本地口袋式宝匣",
+    "windowTitle": "方寸匣 PocketCoffer"
+  },
+  "home": {
+    "get_started": "从编辑这里开始",
+    "save_see": "保存后即可立即看到更新。",
+    "deploy_now": "立即部署",
+    "read_docs": "阅读文档",
+    "learn": "学习",
+    "examples": "示例",
+    "goto_next": "前往 nextjs.org →"
+  },
+  "common": {
+    "language": {
+      "zh": "中文",
+      "en": "English"
+    }
+  }
+}
