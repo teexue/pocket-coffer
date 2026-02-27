@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,16 +21,16 @@ interface CalendarProps {
   onClose?: () => void;
 }
 
-interface Event {
+interface CalendarEvent {
   id: string;
   title: string;
-  description: string;
-  startDate: Date;
-  endDate: Date;
+  description?: string;
+  start_date: string;
+  end_date: string;
   location?: string;
   color: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
 }
 
 type ViewMode = "month" | "week" | "day";
@@ -46,10 +47,10 @@ const colors = [
 ];
 
 export function Calendar({ onClose }: CalendarProps) {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -62,6 +63,19 @@ export function Calendar({ onClose }: CalendarProps) {
     location: "",
     color: colors[0],
   });
+
+  // 从后端加载事件
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const data = await invoke<CalendarEvent[]>("get_all_events");
+        setEvents(data);
+      } catch (error) {
+        console.error("加载事件失败:", error);
+      }
+    };
+    loadEvents();
+  }, []);
 
   // 获取月份名称
   const getMonthName = (date: Date) => {
@@ -158,8 +172,8 @@ export function Calendar({ onClose }: CalendarProps) {
   // 获取某天的事件
   const getEventsForDate = (date: Date) => {
     return events.filter((event) => {
-      const eventStart = new Date(event.startDate);
-      const eventEnd = new Date(event.endDate);
+      const eventStart = new Date(event.start_date);
+      const eventEnd = new Date(event.end_date);
       return (
         (eventStart <= date && eventEnd >= date) ||
         eventStart.toDateString() === date.toDateString()
@@ -168,60 +182,64 @@ export function Calendar({ onClose }: CalendarProps) {
   };
 
   // 创建新事件
-  const createEvent = useCallback(() => {
+  const createEvent = useCallback(async () => {
     if (!formData.title || !formData.startDate) return;
 
-    const startDateTime = new Date(
-      `${formData.startDate}T${formData.startTime || "00:00"}`
-    );
-    const endDateTime = new Date(
-      `${formData.endDate || formData.startDate}T${formData.endTime || "23:59"}`
-    );
+    const startDateTime = `${formData.startDate}T${formData.startTime || "00:00"}`;
+    const endDateTime = `${formData.endDate || formData.startDate}T${formData.endTime || "23:59"}`;
+    const now = new Date().toISOString();
 
-    const newEvent: Event = {
+    const newEvent: CalendarEvent = {
       id: Date.now().toString(),
       title: formData.title,
-      description: formData.description,
-      startDate: startDateTime,
-      endDate: endDateTime,
-      location: formData.location,
+      description: formData.description || undefined,
+      start_date: startDateTime,
+      end_date: endDateTime,
+      location: formData.location || undefined,
       color: formData.color,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      created_at: now,
+      updated_at: now,
     };
 
-    setEvents((prev) => [...prev, newEvent]);
+    try {
+      await invoke("add_event", { event: newEvent });
+      setEvents((prev) => [...prev, newEvent]);
+    } catch (error) {
+      console.error("创建事件失败:", error);
+    }
     setShowEventForm(false);
     resetForm();
   }, [formData]);
 
   // 更新事件
-  const updateEvent = useCallback(() => {
+  const updateEvent = useCallback(async () => {
     if (!selectedEvent || !formData.title || !formData.startDate) return;
 
-    const startDateTime = new Date(
-      `${formData.startDate}T${formData.startTime || "00:00"}`
-    );
-    const endDateTime = new Date(
-      `${formData.endDate || formData.startDate}T${formData.endTime || "23:59"}`
-    );
+    const startDateTime = `${formData.startDate}T${formData.startTime || "00:00"}`;
+    const endDateTime = `${formData.endDate || formData.startDate}T${formData.endTime || "23:59"}`;
+    const now = new Date().toISOString();
 
-    const updatedEvent: Event = {
+    const updatedEvent: CalendarEvent = {
       ...selectedEvent,
       title: formData.title,
-      description: formData.description,
-      startDate: startDateTime,
-      endDate: endDateTime,
-      location: formData.location,
+      description: formData.description || undefined,
+      start_date: startDateTime,
+      end_date: endDateTime,
+      location: formData.location || undefined,
       color: formData.color,
-      updatedAt: new Date(),
+      updated_at: now,
     };
 
-    setEvents((prev) =>
-      prev.map((event) =>
-        event.id === selectedEvent.id ? updatedEvent : event
-      )
-    );
+    try {
+      await invoke("update_event", { event: updatedEvent });
+      setEvents((prev) =>
+        prev.map((event) =>
+          event.id === selectedEvent.id ? updatedEvent : event
+        )
+      );
+    } catch (error) {
+      console.error("更新事件失败:", error);
+    }
     setSelectedEvent(null);
     setIsEditing(false);
     setShowEventForm(false);
@@ -229,8 +247,13 @@ export function Calendar({ onClose }: CalendarProps) {
   }, [selectedEvent, formData]);
 
   // 删除事件
-  const deleteEvent = useCallback((eventId: string) => {
-    setEvents((prev) => prev.filter((event) => event.id !== eventId));
+  const deleteEvent = useCallback(async (eventId: string) => {
+    try {
+      await invoke("delete_event", { id: eventId });
+      setEvents((prev) => prev.filter((event) => event.id !== eventId));
+    } catch (error) {
+      console.error("删除事件失败:", error);
+    }
     setSelectedEvent(null);
     setIsEditing(false);
     setShowEventForm(false);
@@ -252,17 +275,17 @@ export function Calendar({ onClose }: CalendarProps) {
 
   // 打开事件表单
   const openEventForm = useCallback(
-    (date?: Date, event?: Event) => {
+    (date?: Date, event?: CalendarEvent) => {
       if (event) {
         setSelectedEvent(event);
         setIsEditing(true);
         setFormData({
           title: event.title,
-          description: event.description,
-          startDate: event.startDate.toISOString().split("T")[0],
-          startTime: event.startDate.toTimeString().slice(0, 5),
-          endDate: event.endDate.toISOString().split("T")[0],
-          endTime: event.endDate.toTimeString().slice(0, 5),
+          description: event.description || "",
+          startDate: new Date(event.start_date).toISOString().split("T")[0],
+          startTime: new Date(event.start_date).toTimeString().slice(0, 5),
+          endDate: new Date(event.end_date).toISOString().split("T")[0],
+          endTime: new Date(event.end_date).toTimeString().slice(0, 5),
           location: event.location || "",
           color: event.color,
         });
@@ -442,12 +465,12 @@ export function Calendar({ onClose }: CalendarProps) {
             >
               <div className="font-medium">{event.title}</div>
               <div className="text-sm text-muted-foreground">
-                {event.startDate.toLocaleTimeString("zh-CN", {
+                {new Date(event.start_date).toLocaleTimeString("zh-CN", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}{" "}
                 -{" "}
-                {event.endDate.toLocaleTimeString("zh-CN", {
+                {new Date(event.end_date).toLocaleTimeString("zh-CN", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
@@ -660,9 +683,9 @@ export function Calendar({ onClose }: CalendarProps) {
                   {isEditing && (
                     <Button
                       variant="destructive"
-                      onClick={() => {
+                      onClick={async () => {
                         if (selectedEvent) {
-                          deleteEvent(selectedEvent.id);
+                          await deleteEvent(selectedEvent.id);
                         }
                       }}
                     >
