@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +34,8 @@ interface Document {
   id: string;
   title: string;
   content: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
 }
 
 export function TextEditor({ onClose }: TextEditorProps) {
@@ -49,16 +50,36 @@ export function TextEditor({ onClose }: TextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 从后端加载文档
+  useEffect(() => {
+    const loadDocuments = async () => {
+      try {
+        const data = await invoke<Document[]>("get_all_documents");
+        setDocuments(data);
+      } catch (error) {
+        console.error("加载文档失败:", error);
+      }
+    };
+    loadDocuments();
+  }, []);
+
   // 创建新文档
-  const createNewDocument = useCallback(() => {
+  const createNewDocument = useCallback(async () => {
+    const now = new Date().toISOString();
     const newDoc: Document = {
       id: Date.now().toString(),
       title: "未命名文档",
       content: "",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      created_at: now,
+      updated_at: now,
     };
-    setDocuments((prev) => [newDoc, ...prev]);
+
+    try {
+      await invoke("add_document", { doc: newDoc });
+      setDocuments((prev) => [newDoc, ...prev]);
+    } catch (error) {
+      console.error("创建文档失败:", error);
+    }
     setCurrentDoc(newDoc);
     setTitle(newDoc.title);
     setContent(newDoc.content);
@@ -67,20 +88,26 @@ export function TextEditor({ onClose }: TextEditorProps) {
   }, []);
 
   // 保存文档
-  const saveDocument = useCallback(() => {
+  const saveDocument = useCallback(async () => {
     if (!currentDoc) return;
 
-    const updatedDoc = {
+    const now = new Date().toISOString();
+    const updatedDoc: Document = {
       ...currentDoc,
       title: title || "未命名文档",
       content,
-      updatedAt: new Date(),
+      updated_at: now,
     };
 
-    setDocuments((prev) =>
-      prev.map((doc) => (doc.id === currentDoc.id ? updatedDoc : doc))
-    );
-    setCurrentDoc(updatedDoc);
+    try {
+      await invoke("update_document", { doc: updatedDoc });
+      setDocuments((prev) =>
+        prev.map((doc) => (doc.id === currentDoc.id ? updatedDoc : doc))
+      );
+      setCurrentDoc(updatedDoc);
+    } catch (error) {
+      console.error("保存文档失败:", error);
+    }
   }, [currentDoc, title, content]);
 
   // 打开文档
@@ -94,14 +121,19 @@ export function TextEditor({ onClose }: TextEditorProps) {
 
   // 删除文档
   const deleteDocument = useCallback(
-    (docId: string) => {
-      setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
-      if (currentDoc?.id === docId) {
-        setCurrentDoc(null);
-        setTitle("");
-        setContent("");
-        setHistory([]);
-        setHistoryIndex(-1);
+    async (docId: string) => {
+      try {
+        await invoke("delete_document", { id: docId });
+        setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
+        if (currentDoc?.id === docId) {
+          setCurrentDoc(null);
+          setTitle("");
+          setContent("");
+          setHistory([]);
+          setHistoryIndex(-1);
+        }
+      } catch (error) {
+        console.error("删除文档失败:", error);
       }
     },
     [currentDoc]
@@ -194,21 +226,27 @@ export function TextEditor({ onClose }: TextEditorProps) {
       const file = event.target.files?.[0];
       if (file && file.type === "text/plain") {
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           const content = e.target?.result as string;
+          const now = new Date().toISOString();
           const newDoc: Document = {
             id: Date.now().toString(),
             title: file.name.replace(/\.[^/.]+$/, ""),
             content,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            created_at: now,
+            updated_at: now,
           };
-          setDocuments((prev) => [newDoc, ...prev]);
-          setCurrentDoc(newDoc);
-          setTitle(newDoc.title);
-          setContent(newDoc.content);
-          setHistory([newDoc.content]);
-          setHistoryIndex(0);
+          try {
+            await invoke("add_document", { doc: newDoc });
+            setDocuments((prev) => [newDoc, ...prev]);
+            setCurrentDoc(newDoc);
+            setTitle(newDoc.title);
+            setContent(newDoc.content);
+            setHistory([newDoc.content]);
+            setHistoryIndex(0);
+          } catch (error) {
+            console.error("导入文档失败:", error);
+          }
         };
         reader.readAsText(file);
       }
@@ -398,7 +436,7 @@ export function TextEditor({ onClose }: TextEditorProps) {
                         {doc.title}
                       </p>
                       <p className="text-xs opacity-70">
-                        {doc.updatedAt.toLocaleDateString()}
+                        {new Date(doc.updated_at).toLocaleDateString()}
                       </p>
                     </div>
                     <Button

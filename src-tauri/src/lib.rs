@@ -1,6 +1,6 @@
 mod database;
 
-use database::{Database, PasswordEntry, CalendarEvent};
+use database::{Database, PasswordEntry, CalendarEvent, Document};
 use log::info;
 use tauri::{Manager, State};
 
@@ -48,6 +48,28 @@ fn delete_event(db: State<Database>, id: String) -> Result<(), String> {
     db.delete_event(&id).map_err(|e| e.to_string())
 }
 
+// ========== 文档命令 ==========
+
+#[tauri::command]
+fn get_all_documents(db: State<Database>) -> Result<Vec<Document>, String> {
+    db.get_all_documents().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn add_document(db: State<Database>, doc: Document) -> Result<(), String> {
+    db.add_document(&doc).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn update_document(db: State<Database>, doc: Document) -> Result<(), String> {
+    db.update_document(&doc).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_document(db: State<Database>, id: String) -> Result<(), String> {
+    db.delete_document(&id).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::init();
@@ -73,6 +95,10 @@ pub fn run() {
             add_event,
             update_event,
             delete_event,
+            get_all_documents,
+            add_document,
+            update_document,
+            delete_document,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

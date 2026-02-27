@@ -36,6 +36,16 @@ pub struct CalendarEvent {
     pub updated_at: String,
 }
 
+// 文档结构
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Document {
+    pub id: String,
+    pub title: String,
+    pub content: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
 impl Database {
     pub fn new(app_handle: &AppHandle) -> Result<Self, Box<dyn std::error::Error>> {
         let app_dir = app_handle.path().app_data_dir()?;
@@ -246,6 +256,62 @@ impl Database {
     pub fn delete_event(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute("DELETE FROM events WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+    
+    // ========== 文档 CRUD ==========
+    
+    pub fn get_all_documents(&self) -> Result<Vec<Document>, Box<dyn std::error::Error>> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        let mut stmt = conn.prepare(
+            "SELECT id, title, content, created_at, updated_at FROM documents ORDER BY updated_at DESC"
+        )?;
+        
+        let docs = stmt.query_map([], |row| {
+            Ok(Document {
+                id: row.get(0)?,
+                title: row.get(1)?,
+                content: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        })?.collect::<Result<Vec<_>, _>>()?;
+        
+        Ok(docs)
+    }
+    
+    pub fn add_document(&self, doc: &Document) -> Result<(), Box<dyn std::error::Error>> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT INTO documents (id, title, content, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                doc.id,
+                doc.title,
+                doc.content,
+                doc.created_at,
+                doc.updated_at,
+            ],
+        )?;
+        Ok(())
+    }
+    
+    pub fn update_document(&self, doc: &Document) -> Result<(), Box<dyn std::error::Error>> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "UPDATE documents SET title = ?1, content = ?2, updated_at = ?3 WHERE id = ?4",
+            params![
+                doc.title,
+                doc.content,
+                doc.updated_at,
+                doc.id,
+            ],
+        )?;
+        Ok(())
+    }
+    
+    pub fn delete_document(&self, id: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let conn = self.conn.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM documents WHERE id = ?1", params![id])?;
         Ok(())
     }
 }
