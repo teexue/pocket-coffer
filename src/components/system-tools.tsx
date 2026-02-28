@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
+import { useState, useCallback, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import {
   Monitor,
   Cpu,
@@ -21,7 +22,7 @@ import {
   CheckCircle,
   Clock,
   Globe,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface SystemToolsProps {
   onClose?: () => void;
@@ -47,6 +48,17 @@ interface SystemInfo {
     connectionType: string;
     effectiveType: string;
   };
+  // 真实系统信息（来自后端）
+  osName?: string;
+  osVersion?: string;
+  kernelVersion?: string;
+  hostname?: string;
+  cpuName?: string;
+  cpuCores?: number;
+  totalMemory?: number;
+  usedMemory?: number;
+  totalDisk?: number;
+  usedDisk?: number;
 }
 
 interface ProcessInfo {
@@ -54,7 +66,7 @@ interface ProcessInfo {
   name: string;
   cpu: number;
   memory: number;
-  status: "running" | "stopped" | "error";
+  status: 'running' | 'stopped' | 'error';
 }
 
 export function SystemTools({ onClose }: SystemToolsProps) {
@@ -82,18 +94,9 @@ export function SystemTools({ onClose }: SystemToolsProps) {
     // 获取内存信息（如果支持）
     const memory = (nav as any).deviceMemory
       ? {
-          used:
-            Math.round(
-              (performance as any).memory?.usedJSHeapSize / 1024 / 1024
-            ) || 0,
-          total:
-            Math.round(
-              (performance as any).memory?.totalJSHeapSize / 1024 / 1024
-            ) || 0,
-          limit:
-            Math.round(
-              (performance as any).memory?.jsHeapSizeLimit / 1024 / 1024
-            ) || 0,
+          used: Math.round((performance as any).memory?.usedJSHeapSize / 1024 / 1024) || 0,
+          total: Math.round((performance as any).memory?.totalJSHeapSize / 1024 / 1024) || 0,
+          limit: Math.round((performance as any).memory?.jsHeapSizeLimit / 1024 / 1024) || 0,
         }
       : {
           used: 0,
@@ -103,11 +106,9 @@ export function SystemTools({ onClose }: SystemToolsProps) {
 
     // 获取网络连接信息
     const connection =
-      (nav as any).connection ||
-      (nav as any).mozConnection ||
-      (nav as any).webkitConnection;
-    const connectionType = connection?.type || "unknown";
-    const effectiveType = connection?.effectiveType || "unknown";
+      (nav as any).connection || (nav as any).mozConnection || (nav as any).webkitConnection;
+    const connectionType = connection?.type || 'unknown';
+    const effectiveType = connection?.effectiveType || 'unknown';
 
     return {
       platform: nav.platform,
@@ -128,19 +129,57 @@ export function SystemTools({ onClose }: SystemToolsProps) {
     };
   }, []);
 
+  // 从后端获取真实系统信息
+  const fetchRealSystemInfo = useCallback(async () => {
+    try {
+      const realInfo = await invoke<{
+        os_name: string;
+        os_version: string;
+        kernel_version: string;
+        hostname: string;
+        cpu_name: string;
+        cpu_cores: number;
+        total_memory: number;
+        used_memory: number;
+        total_disk: number;
+        used_disk: number;
+      }>('get_system_info');
+
+      setSystemInfo((prev) =>
+        prev
+          ? {
+              ...prev,
+              osName: realInfo.os_name,
+              osVersion: realInfo.os_version,
+              kernelVersion: realInfo.kernel_version,
+              hostname: realInfo.hostname,
+              cpuName: realInfo.cpu_name,
+              cpuCores: realInfo.cpu_cores,
+              totalMemory: realInfo.total_memory,
+              usedMemory: realInfo.used_memory,
+              totalDisk: realInfo.total_disk,
+              usedDisk: realInfo.used_disk,
+            }
+          : null
+      );
+    } catch (error) {
+      console.error('获取真实系统信息失败:', error);
+    }
+  }, []);
+
   // 模拟进程信息
   const generateProcesses = useCallback((): ProcessInfo[] => {
     const processNames = [
-      "System",
-      "Explorer",
-      "Chrome",
-      "Firefox",
-      "VSCode",
-      "Node.js",
-      "Python",
-      "Docker",
-      "Git",
-      "npm",
+      'System',
+      'Explorer',
+      'Chrome',
+      'Firefox',
+      'VSCode',
+      'Node.js',
+      'Python',
+      'Docker',
+      'Git',
+      'npm',
     ];
 
     return processNames.map((name, index) => ({
@@ -148,7 +187,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
       name,
       cpu: Math.random() * 100,
       memory: Math.random() * 1000,
-      status: Math.random() > 0.1 ? "running" : "stopped",
+      status: Math.random() > 0.1 ? 'running' : 'stopped',
     }));
   }, []);
 
@@ -183,7 +222,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
   // 清理系统缓存
   const clearSystemCache = useCallback(() => {
     // 模拟清理操作
-    if ("caches" in window) {
+    if ('caches' in window) {
       caches.keys().then((names) => {
         names.forEach((name) => {
           caches.delete(name);
@@ -195,7 +234,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith("temp_")) {
+      if (key && key.startsWith('temp_')) {
         keysToRemove.push(key);
       }
     }
@@ -233,11 +272,11 @@ export function SystemTools({ onClose }: SystemToolsProps) {
   // 获取状态图标
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "running":
+      case 'running':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case "stopped":
+      case 'stopped':
         return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-      case "error":
+      case 'error':
         return <AlertTriangle className="w-4 h-4 text-red-500" />;
       default:
         return <Info className="w-4 h-4 text-gray-500" />;
@@ -246,19 +285,23 @@ export function SystemTools({ onClose }: SystemToolsProps) {
 
   // 获取健康状态颜色
   const getHealthColor = (value: number) => {
-    if (value < 30) return "text-green-600";
-    if (value < 70) return "text-yellow-600";
-    return "text-red-600";
+    if (value < 30) return 'text-green-600';
+    if (value < 70) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
   // 初始化
   useEffect(() => {
     refreshSystemInfo();
+    fetchRealSystemInfo();
 
     // 设置自动刷新
-    const interval = setInterval(refreshSystemInfo, 5000);
+    const interval = setInterval(() => {
+      refreshSystemInfo();
+      fetchRealSystemInfo();
+    }, 5000);
     return () => clearInterval(interval);
-  }, [refreshSystemInfo]);
+  }, [refreshSystemInfo, fetchRealSystemInfo]);
 
   return (
     <div className="h-full flex flex-col">
@@ -269,15 +312,8 @@ export function SystemTools({ onClose }: SystemToolsProps) {
             系统工具
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshSystemInfo}
-              disabled={isRefreshing}
-            >
-              <RefreshCw
-                className={`w-4 h-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`}
-              />
+            <Button variant="outline" size="sm" onClick={refreshSystemInfo} disabled={isRefreshing}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
               刷新
             </Button>
             {onClose && (
@@ -298,11 +334,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                 <Cpu className="w-4 h-4" />
                 <span className="text-sm font-medium">CPU</span>
               </div>
-              <div
-                className={`text-2xl font-bold ${getHealthColor(
-                  systemHealth.cpu
-                )}`}
-              >
+              <div className={`text-2xl font-bold ${getHealthColor(systemHealth.cpu)}`}>
                 {systemHealth.cpu.toFixed(1)}%
               </div>
               <Progress value={systemHealth.cpu} className="mt-2" />
@@ -315,11 +347,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                 <MemoryStick className="w-4 h-4" />
                 <span className="text-sm font-medium">内存</span>
               </div>
-              <div
-                className={`text-2xl font-bold ${getHealthColor(
-                  systemHealth.memory
-                )}`}
-              >
+              <div className={`text-2xl font-bold ${getHealthColor(systemHealth.memory)}`}>
                 {systemHealth.memory.toFixed(1)}%
               </div>
               <Progress value={systemHealth.memory} className="mt-2" />
@@ -332,11 +360,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                 <HardDrive className="w-4 h-4" />
                 <span className="text-sm font-medium">磁盘</span>
               </div>
-              <div
-                className={`text-2xl font-bold ${getHealthColor(
-                  systemHealth.disk
-                )}`}
-              >
+              <div className={`text-2xl font-bold ${getHealthColor(systemHealth.disk)}`}>
                 {systemHealth.disk.toFixed(1)}%
               </div>
               <Progress value={systemHealth.disk} className="mt-2" />
@@ -349,11 +373,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                 <Wifi className="w-4 h-4" />
                 <span className="text-sm font-medium">网络</span>
               </div>
-              <div
-                className={`text-2xl font-bold ${getHealthColor(
-                  systemHealth.network
-                )}`}
-              >
+              <div className={`text-2xl font-bold ${getHealthColor(systemHealth.network)}`}>
                 {systemHealth.network.toFixed(1)}%
               </div>
               <Progress value={systemHealth.network} className="mt-2" />
@@ -382,9 +402,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                         <Monitor className="w-4 h-4" />
                         <span className="font-medium">平台</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.platform}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{systemInfo.platform}</p>
                     </div>
 
                     <div className="space-y-2">
@@ -392,9 +410,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                         <Globe className="w-4 h-4" />
                         <span className="font-medium">语言</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.language}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{systemInfo.language}</p>
                     </div>
 
                     <div className="space-y-2">
@@ -402,9 +418,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                         <Clock className="w-4 h-4" />
                         <span className="font-medium">时区</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.timezone}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{systemInfo.timezone}</p>
                     </div>
 
                     <div className="space-y-2">
@@ -412,9 +426,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                         <Monitor className="w-4 h-4" />
                         <span className="font-medium">屏幕分辨率</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {systemInfo.screenResolution}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{systemInfo.screenResolution}</p>
                     </div>
 
                     <div className="space-y-2">
@@ -423,7 +435,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                         <span className="font-medium">在线状态</span>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {systemInfo.onlineStatus ? "在线" : "离线"}
+                        {systemInfo.onlineStatus ? '在线' : '离线'}
                       </p>
                     </div>
 
@@ -459,8 +471,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                         <div>
                           <p className="font-medium">{process.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            CPU: {process.cpu.toFixed(1)}% | 内存:{" "}
-                            {process.memory.toFixed(1)}MB
+                            CPU: {process.cpu.toFixed(1)}% | 内存: {process.memory.toFixed(1)}MB
                           </p>
                         </div>
                       </div>
@@ -493,12 +504,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                         {systemInfo?.performance.loadTime}ms
                       </span>
                     </div>
-                    <Progress
-                      value={Math.min(
-                        100,
-                        (systemInfo?.performance.loadTime || 0) / 10
-                      )}
-                    />
+                    <Progress value={Math.min(100, (systemInfo?.performance.loadTime || 0) / 10)} />
                   </div>
 
                   <div className="space-y-2">
@@ -528,18 +534,14 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm font-medium">
-                        JavaScript 堆内存
-                      </span>
+                      <span className="text-sm font-medium">JavaScript 堆内存</span>
                       <span className="text-sm text-muted-foreground">
                         {systemInfo?.memory.used}MB
                       </span>
                     </div>
                     <Progress
                       value={
-                        ((systemInfo?.memory.used || 0) /
-                          (systemInfo?.memory.limit || 1)) *
-                        100
+                        ((systemInfo?.memory.used || 0) / (systemInfo?.memory.limit || 1)) * 100
                       }
                     />
                   </div>
@@ -553,9 +555,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                     </div>
                     <Progress
                       value={
-                        ((systemInfo?.memory.total || 0) /
-                          (systemInfo?.memory.limit || 1)) *
-                        100
+                        ((systemInfo?.memory.total || 0) / (systemInfo?.memory.limit || 1)) * 100
                       }
                     />
                   </div>
@@ -598,9 +598,7 @@ export function SystemTools({ onClose }: SystemToolsProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      优化系统性能，减少资源占用
-                    </p>
+                    <p className="text-sm text-muted-foreground">优化系统性能，减少资源占用</p>
                     <Button onClick={optimizeSystem} className="w-full">
                       <Settings className="w-4 h-4 mr-2" />
                       优化系统性能

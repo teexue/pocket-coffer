@@ -26,6 +26,7 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
 env_logger = "0.11"
+sysinfo = "0.32"
 
 [profile.release]
 strip = true

@@ -1,18 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Palette, RotateCcw, History } from "lucide-react";
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Copy, Palette, RotateCcw, History } from 'lucide-react';
 
 interface ColorHistory {
   id: string;
@@ -21,8 +15,8 @@ interface ColorHistory {
 }
 
 export function ColorPicker() {
-  const [currentColor, setCurrentColor] = useState("#3b82f6");
-  const [tempColor, setTempColor] = useState("#3b82f6");
+  const [currentColor, setCurrentColor] = useState('#3b82f6');
+  const [tempColor, setTempColor] = useState('#3b82f6');
   const [colorHistory, setColorHistory] = useState<ColorHistory[]>([]);
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
 
@@ -44,9 +38,9 @@ export function ColorPicker() {
     b /= 255;
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    let h = 0,
-      s = 0,
-      l = (max + min) / 2;
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
 
     if (max !== min) {
       const d = max - min;
@@ -76,13 +70,13 @@ export function ColorPicker() {
     const rgb = hexToRgb(color);
     if (!rgb) {
       return {
-        hex: "#000000",
-        rgb: "rgb(0, 0, 0)",
-        rgba: "rgba(0, 0, 0, 1)",
-        hsl: "hsl(0, 0%, 0%)",
-        hsla: "hsla(0, 0%, 0%, 1)",
-        css: "#000000",
-        number: "0x000000",
+        hex: '#000000',
+        rgb: 'rgb(0, 0, 0)',
+        rgba: 'rgba(0, 0, 0, 1)',
+        hsl: 'hsl(0, 0%, 0%)',
+        hsla: 'hsla(0, 0%, 0%, 1)',
+        css: '#000000',
+        number: '0x000000',
       };
     }
 
@@ -105,7 +99,7 @@ export function ColorPicker() {
       setCopiedFormat(format);
       setTimeout(() => setCopiedFormat(null), 2000);
     } catch (err) {
-      console.error("Failed to copy: ", err);
+      console.error('Failed to copy: ', err);
     }
   };
 
@@ -194,11 +188,7 @@ export function ColorPicker() {
 
             {/* 确认/取消按钮 */}
             <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={confirmColor}
-                disabled={tempColor === currentColor}
-              >
+              <Button size="sm" onClick={confirmColor} disabled={tempColor === currentColor}>
                 确认选择
               </Button>
               <Button
@@ -229,31 +219,21 @@ export function ColorPicker() {
 
               <TabsContent value="hex" className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={colorFormats.hex}
-                    readOnly
-                    className="font-mono"
-                  />
+                  <Input value={colorFormats.hex} readOnly className="font-mono" />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(colorFormats.hex, "hex")}
+                    onClick={() => copyToClipboard(colorFormats.hex, 'hex')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={colorFormats.number}
-                    readOnly
-                    className="font-mono"
-                  />
+                  <Input value={colorFormats.number} readOnly className="font-mono" />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() =>
-                      copyToClipboard(colorFormats.number, "number")
-                    }
+                    onClick={() => copyToClipboard(colorFormats.number, 'number')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -262,29 +242,21 @@ export function ColorPicker() {
 
               <TabsContent value="rgb" className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={colorFormats.rgb}
-                    readOnly
-                    className="font-mono"
-                  />
+                  <Input value={colorFormats.rgb} readOnly className="font-mono" />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(colorFormats.rgb, "rgb")}
+                    onClick={() => copyToClipboard(colorFormats.rgb, 'rgb')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={colorFormats.rgba}
-                    readOnly
-                    className="font-mono"
-                  />
+                  <Input value={colorFormats.rgba} readOnly className="font-mono" />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(colorFormats.rgba, "rgba")}
+                    onClick={() => copyToClipboard(colorFormats.rgba, 'rgba')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -293,29 +265,21 @@ export function ColorPicker() {
 
               <TabsContent value="hsl" className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={colorFormats.hsl}
-                    readOnly
-                    className="font-mono"
-                  />
+                  <Input value={colorFormats.hsl} readOnly className="font-mono" />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(colorFormats.hsl, "hsl")}
+                    onClick={() => copyToClipboard(colorFormats.hsl, 'hsl')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={colorFormats.hsla}
-                    readOnly
-                    className="font-mono"
-                  />
+                  <Input value={colorFormats.hsla} readOnly className="font-mono" />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(colorFormats.hsla, "hsla")}
+                    onClick={() => copyToClipboard(colorFormats.hsla, 'hsla')}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
@@ -325,10 +289,7 @@ export function ColorPicker() {
 
             {copiedFormat && (
               <div className="mt-2">
-                <Badge
-                  variant="default"
-                  className="bg-green-100 text-green-800"
-                >
+                <Badge variant="default" className="bg-green-100 text-green-800">
                   已复制 {copiedFormat.toUpperCase()} 格式
                 </Badge>
               </div>
@@ -354,9 +315,7 @@ export function ColorPicker() {
         </CardHeader>
         <CardContent>
           {colorHistory.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              暂无颜色历史
-            </p>
+            <p className="text-muted-foreground text-center py-4">暂无颜色历史</p>
           ) : (
             <div className="grid grid-cols-5 gap-3">
               {colorHistory.map((item) => (
@@ -369,9 +328,7 @@ export function ColorPicker() {
                     className="w-full h-16 rounded-lg border-2 border-border hover:border-primary transition-colors"
                     style={{ backgroundColor: item.color }}
                   />
-                  <p className="text-xs font-mono mt-1 text-center">
-                    {item.color.toUpperCase()}
-                  </p>
+                  <p className="text-xs font-mono mt-1 text-center">{item.color.toUpperCase()}</p>
                 </div>
               ))}
             </div>

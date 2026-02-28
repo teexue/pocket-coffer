@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { QrCode, Download, Copy } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { QrCode, Download, Copy } from 'lucide-react';
 
 interface QRGeneratorProps {
   onClose?: () => void;
@@ -14,67 +14,59 @@ interface QRGeneratorProps {
 
 interface QRConfig {
   size: number;
-  errorCorrectionLevel: "L" | "M" | "Q" | "H";
+  errorCorrectionLevel: 'L' | 'M' | 'Q' | 'H';
   margin: number;
   color: string;
   backgroundColor: string;
 }
 
-type QRType =
-  | "text"
-  | "url"
-  | "wifi"
-  | "phone"
-  | "email"
-  | "sms"
-  | "vcard"
-  | "location";
+type QRType = 'text' | 'url' | 'wifi' | 'phone' | 'email' | 'sms' | 'vcard' | 'location';
 
 export function QRGenerator({ onClose }: QRGeneratorProps) {
-  const [qrType, setQrType] = useState<QRType>("text");
-  const [qrData, setQrData] = useState("");
+  const [qrType, setQrType] = useState<QRType>('text');
+  const [qrData, setQrData] = useState('');
   const [qrConfig, setQrConfig] = useState<QRConfig>({
     size: 256,
-    errorCorrectionLevel: "M",
+    errorCorrectionLevel: 'M',
     margin: 4,
-    color: "#000000",
-    backgroundColor: "#ffffff",
+    color: '#000000',
+    backgroundColor: '#ffffff',
   });
-  const [generatedQR, setGeneratedQR] = useState("");
+  const [generatedQR, setGeneratedQR] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
   // 表单数据
   const [formData, setFormData] = useState({
-    text: "",
-    url: "",
+    text: '',
+    url: '',
     wifi: {
-      ssid: "",
-      password: "",
-      security: "WPA",
+      ssid: '',
+      password: '',
+      security: 'WPA',
       hidden: false,
     },
-    phone: "",
+    phone: '',
     email: {
-      address: "",
-      subject: "",
-      body: "",
+      address: '',
+      subject: '',
+      body: '',
     },
     sms: {
-      number: "",
-      message: "",
+      number: '',
+      message: '',
     },
     vcard: {
-      name: "",
-      phone: "",
-      email: "",
-      organization: "",
-      title: "",
-      website: "",
+      name: '',
+      phone: '',
+      email: '',
+      organization: '',
+      title: '',
+      website: '',
     },
     location: {
-      latitude: "",
-      longitude: "",
-      label: "",
+      latitude: '',
+      longitude: '',
+      label: '',
     },
   });
 
@@ -83,13 +75,13 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
   // 生成二维码数据字符串
   const generateQRData = useCallback((type: QRType, data: any): string => {
     switch (type) {
-      case "text":
-        return data.text || "";
-      case "url":
-        return data.url || "";
-      case "wifi":
+      case 'text':
+        return data.text || '';
+      case 'url':
+        return data.url || '';
+      case 'wifi': {
         const wifiData = data.wifi;
-        if (!wifiData.ssid) return "";
+        if (!wifiData.ssid) return '';
         let wifiString = `WIFI:T:${wifiData.security};S:${wifiData.ssid};`;
         if (wifiData.password) {
           wifiString += `P:${wifiData.password};`;
@@ -97,54 +89,56 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
         if (wifiData.hidden) {
           wifiString += `H:true;`;
         }
-        wifiString += ";";
+        wifiString += ';';
         return wifiString;
-      case "phone":
+      }
+      case 'phone':
         return `tel:${data.phone}`;
-      case "email":
+      case 'email': {
         const emailData = data.email;
-        if (!emailData.address) return "";
+        if (!emailData.address) return '';
         let emailString = `mailto:${emailData.address}`;
         const params = [];
-        if (emailData.subject)
-          params.push(`subject=${encodeURIComponent(emailData.subject)}`);
-        if (emailData.body)
-          params.push(`body=${encodeURIComponent(emailData.body)}`);
+        if (emailData.subject) params.push(`subject=${encodeURIComponent(emailData.subject)}`);
+        if (emailData.body) params.push(`body=${encodeURIComponent(emailData.body)}`);
         if (params.length > 0) {
-          emailString += `?${params.join("&")}`;
+          emailString += `?${params.join('&')}`;
         }
         return emailString;
-      case "sms":
+      }
+      case 'sms': {
         const smsData = data.sms;
-        if (!smsData.number) return "";
+        if (!smsData.number) return '';
         let smsString = `sms:${smsData.number}`;
         if (smsData.message) {
           smsString += `:${encodeURIComponent(smsData.message)}`;
         }
         return smsString;
-      case "vcard":
+      }
+      case 'vcard': {
         const vcardData = data.vcard;
-        if (!vcardData.name) return "";
-        let vcardString = "BEGIN:VCARD\nVERSION:3.0\n";
+        if (!vcardData.name) return '';
+        let vcardString = 'BEGIN:VCARD\nVERSION:3.0\n';
         vcardString += `FN:${vcardData.name}\n`;
         if (vcardData.phone) vcardString += `TEL:${vcardData.phone}\n`;
         if (vcardData.email) vcardString += `EMAIL:${vcardData.email}\n`;
-        if (vcardData.organization)
-          vcardString += `ORG:${vcardData.organization}\n`;
+        if (vcardData.organization) vcardString += `ORG:${vcardData.organization}\n`;
         if (vcardData.title) vcardString += `TITLE:${vcardData.title}\n`;
         if (vcardData.website) vcardString += `URL:${vcardData.website}\n`;
-        vcardString += "END:VCARD";
+        vcardString += 'END:VCARD';
         return vcardString;
-      case "location":
+      }
+      case 'location': {
         const locationData = data.location;
-        if (!locationData.latitude || !locationData.longitude) return "";
+        if (!locationData.latitude || !locationData.longitude) return '';
         let locationString = `geo:${locationData.latitude},${locationData.longitude}`;
         if (locationData.label) {
           locationString += `?q=${encodeURIComponent(locationData.label)}`;
         }
         return locationString;
+      }
       default:
-        return "";
+        return '';
     }
   }, []);
 
@@ -165,7 +159,7 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
       // 创建一个简单的二维码图案（实际项目中应该使用真正的二维码库）
       const canvas = canvasRef.current;
       if (canvas) {
-        const ctx = canvas.getContext("2d");
+        const ctx = canvas.getContext('2d');
         if (ctx) {
           canvas.width = qrConfig.size;
           canvas.height = qrConfig.size;
@@ -197,19 +191,9 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
           const drawFinderPattern = (x: number, y: number) => {
             ctx.fillRect(x, y, cellSize * 7, cellSize * 7);
             ctx.fillStyle = qrConfig.backgroundColor;
-            ctx.fillRect(
-              x + cellSize,
-              y + cellSize,
-              cellSize * 5,
-              cellSize * 5
-            );
+            ctx.fillRect(x + cellSize, y + cellSize, cellSize * 5, cellSize * 5);
             ctx.fillStyle = qrConfig.color;
-            ctx.fillRect(
-              x + cellSize * 2,
-              y + cellSize * 2,
-              cellSize * 3,
-              cellSize * 3
-            );
+            ctx.fillRect(x + cellSize * 2, y + cellSize * 2, cellSize * 3, cellSize * 3);
           };
 
           drawFinderPattern(margin, margin);
@@ -220,7 +204,7 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
         }
       }
     } catch (error) {
-      console.error("生成二维码失败:", error);
+      console.error('生成二维码失败:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -230,7 +214,7 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
   const downloadQR = useCallback(() => {
     if (!generatedQR) return;
 
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.download = `qrcode-${Date.now()}.png`;
     link.href = generatedQR;
     link.click();
@@ -244,11 +228,9 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
       // 将base64转换为blob
       const response = await fetch(generatedQR);
       const blob = await response.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
-      ]);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     } catch (error) {
-      console.error("复制失败:", error);
+      console.error('复制失败:', error);
     }
   }, [generatedQR]);
 
@@ -285,10 +267,7 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
         <div className="flex-1 flex gap-4">
           {/* 左侧：配置面板 */}
           <div className="w-80 space-y-4">
-            <Tabs
-              value={qrType}
-              onValueChange={(value) => setQrType(value as QRType)}
-            >
+            <Tabs value={qrType} onValueChange={(value) => setQrType(value as QRType)}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="text">文本</TabsTrigger>
                 <TabsTrigger value="url">链接</TabsTrigger>
@@ -305,9 +284,7 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
                   <label className="text-sm font-medium">文本内容</label>
                   <Input
                     value={formData.text}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, text: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, text: e.target.value }))}
                     placeholder="输入要生成二维码的文本"
                   />
                 </div>
@@ -318,9 +295,7 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
                   <label className="text-sm font-medium">网址</label>
                   <Input
                     value={formData.url}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, url: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
                     placeholder="https://example.com"
                   />
                 </div>
@@ -636,11 +611,7 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
                   onChange={(e) =>
                     setQrConfig((prev) => ({
                       ...prev,
-                      errorCorrectionLevel: e.target.value as
-                        | "L"
-                        | "M"
-                        | "Q"
-                        | "H",
+                      errorCorrectionLevel: e.target.value as 'L' | 'M' | 'Q' | 'H',
                     }))
                   }
                   className="w-full p-2 border rounded"
@@ -703,14 +674,10 @@ export function QRGenerator({ onClose }: QRGeneratorProps) {
               <h3 className="text-lg font-medium mb-2">二维码预览</h3>
               <div className="border rounded-lg p-4 bg-white">
                 {generatedQR ? (
-                  <img
-                    src={generatedQR}
-                    alt="Generated QR Code"
-                    className="max-w-full h-auto"
-                  />
+                  <img src={generatedQR} alt="Generated QR Code" className="max-w-full h-auto" />
                 ) : (
                   <div className="w-64 h-64 flex items-center justify-center text-muted-foreground">
-                    {isGenerating ? "生成中..." : "输入内容生成二维码"}
+                    {isGenerating ? '生成中...' : '输入内容生成二维码'}
                   </div>
                 )}
               </div>

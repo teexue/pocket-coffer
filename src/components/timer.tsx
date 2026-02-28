@@ -1,24 +1,19 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { useState, useEffect, useRef } from 'react';
+import { invoke } from '@tauri-apps/api/core';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Play,
   Pause,
@@ -28,9 +23,9 @@ import {
   Timer as TimerIcon,
   Volume2,
   VolumeX,
-} from "lucide-react";
+} from 'lucide-react';
 
-type TimerMode = "countdown" | "stopwatch";
+type TimerMode = 'countdown' | 'stopwatch';
 
 interface TimePreset {
   label: string;
@@ -38,25 +33,66 @@ interface TimePreset {
 }
 
 const timePresets: TimePreset[] = [
-  { label: "1分钟", minutes: 1 },
-  { label: "5分钟", minutes: 5 },
-  { label: "10分钟", minutes: 10 },
-  { label: "15分钟", minutes: 15 },
-  { label: "25分钟", minutes: 25 },
-  { label: "30分钟", minutes: 30 },
-  { label: "45分钟", minutes: 45 },
-  { label: "60分钟", minutes: 60 },
+  { label: '1分钟', minutes: 1 },
+  { label: '5分钟', minutes: 5 },
+  { label: '10分钟', minutes: 10 },
+  { label: '15分钟', minutes: 15 },
+  { label: '25分钟', minutes: 25 },
+  { label: '30分钟', minutes: 30 },
+  { label: '45分钟', minutes: 45 },
+  { label: '60分钟', minutes: 60 },
 ];
 
 export function Timer() {
-  const [mode, setMode] = useState<TimerMode>("countdown");
+  const [mode, setMode] = useState<TimerMode>('countdown');
   const [isRunning, setIsRunning] = useState(false);
   const [timeLeft, setTimeLeft] = useState(5 * 60); // 倒计时剩余时间（秒），默认5分钟
   const [elapsedTime, setElapsedTime] = useState(0); // 秒表已用时间（秒）
   const [customMinutes, setCustomMinutes] = useState(5);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // 加载设置
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const minutes = await invoke<string | null>('get_setting', { key: 'timer_custom_minutes' });
+        const sound = await invoke<string | null>('get_setting', { key: 'timer_sound_enabled' });
+
+        if (minutes) {
+          setCustomMinutes(parseInt(minutes, 10));
+        }
+        if (sound !== null) {
+          setSoundEnabled(sound === 'true');
+        }
+      } catch (error) {
+        console.error('加载计时器设置失败:', error);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // 保存自定义时间设置
+  const handleCustomMinutesChange = async (value: number) => {
+    setCustomMinutes(value);
+    try {
+      await invoke('set_setting', { key: 'timer_custom_minutes', value: value.toString() });
+    } catch (error) {
+      console.error('保存计时器设置失败:', error);
+    }
+  };
+
+  // 保存声音设置
+  const handleSoundToggle = async () => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    try {
+      await invoke('set_setting', { key: 'timer_sound_enabled', value: newValue.toString() });
+    } catch (error) {
+      console.error('保存计时器设置失败:', error);
+    }
+  };
   const [isInitialized, setIsInitialized] = useState(false); // 跟踪是否已初始化
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 格式化时间显示
   const formatTime = (seconds: number) => {
@@ -65,21 +101,18 @@ export function Timer() {
     const secs = seconds % 60;
 
     if (hours > 0) {
-      return `${hours.toString().padStart(2, "0")}:${minutes
+      return `${hours.toString().padStart(2, '0')}:${minutes
         .toString()
-        .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+        .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
-    return `${minutes.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   // 播放提醒声音
   const playAlert = () => {
     if (soundEnabled) {
       // 创建简单的提示音
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -88,10 +121,7 @@ export function Timer() {
 
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.5
-      );
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.5);
@@ -110,7 +140,7 @@ export function Timer() {
   const startTimer = () => {
     setIsRunning(true);
     intervalRef.current = setInterval(() => {
-      if (mode === "countdown") {
+      if (mode === 'countdown') {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             playAlert();
@@ -135,7 +165,7 @@ export function Timer() {
 
   const resetTimer = () => {
     pauseTimer();
-    if (mode === "countdown") {
+    if (mode === 'countdown') {
       setTimeLeft(customMinutes * 60);
       setIsInitialized(true);
     } else {
@@ -144,7 +174,7 @@ export function Timer() {
   };
 
   const setPresetTime = (minutes: number) => {
-    setCustomMinutes(minutes);
+    handleCustomMinutesChange(minutes);
     setIsInitialized(false); // 重新初始化，让useEffect更新timeLeft
   };
 
@@ -159,7 +189,7 @@ export function Timer() {
 
   // 当customMinutes变化时，自动更新倒计时时间（仅在未初始化或重置后）
   useEffect(() => {
-    if (mode === "countdown" && !isInitialized) {
+    if (mode === 'countdown' && !isInitialized) {
       setTimeLeft(customMinutes * 60);
       setIsInitialized(true);
     }
@@ -167,7 +197,7 @@ export function Timer() {
 
   // 计算进度百分比
   const getProgress = () => {
-    if (mode === "countdown") {
+    if (mode === 'countdown') {
       const totalTime = customMinutes * 60;
       return totalTime > 0 ? ((totalTime - timeLeft) / totalTime) * 100 : 0;
     } else {
@@ -176,16 +206,14 @@ export function Timer() {
     }
   };
 
-  const currentTime = mode === "countdown" ? timeLeft : elapsedTime;
+  const currentTime = mode === 'countdown' ? timeLeft : elapsedTime;
   const progress = getProgress();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center">
         <h2 className="text-2xl font-bold mb-2">计时器</h2>
-        <p className="text-muted-foreground">
-          倒计时和秒表功能，帮助您管理时间
-        </p>
+        <p className="text-muted-foreground">倒计时和秒表功能，帮助您管理时间</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -202,10 +230,7 @@ export function Timer() {
             {/* 模式选择 */}
             <div className="space-y-2">
               <label className="text-sm font-medium">计时模式</label>
-              <Select
-                value={mode}
-                onValueChange={(value: TimerMode) => setMode(value)}
-              >
+              <Select value={mode} onValueChange={(value: TimerMode) => setMode(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -227,28 +252,24 @@ export function Timer() {
             </div>
 
             {/* 时间设置（仅倒计时模式） */}
-            {mode === "countdown" && (
+            {mode === 'countdown' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">设置时间</label>
                 <div className="flex gap-2">
                   <Input
                     type="number"
                     value={customMinutes}
-                    onChange={(e) => setCustomMinutes(Number(e.target.value))}
+                    onChange={(e) => handleCustomMinutesChange(Number(e.target.value))}
                     min="1"
                     max="999"
                     className="flex-1"
                   />
-                  <span className="flex items-center text-sm text-muted-foreground">
-                    分钟
-                  </span>
+                  <span className="flex items-center text-sm text-muted-foreground">分钟</span>
                 </div>
 
                 {/* 快速预设 */}
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">
-                    快速选择
-                  </label>
+                  <label className="text-xs text-muted-foreground">快速选择</label>
                   <div className="flex flex-wrap gap-1">
                     {timePresets.map((preset) => (
                       <Button
@@ -290,16 +311,8 @@ export function Timer() {
             {/* 声音控制 */}
             <div className="flex items-center justify-between">
               <span className="text-sm">声音提醒</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-              >
-                {soundEnabled ? (
-                  <Volume2 className="w-4 h-4" />
-                ) : (
-                  <VolumeX className="w-4 h-4" />
-                )}
+              <Button size="sm" variant="ghost" onClick={handleSoundToggle}>
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </Button>
             </div>
           </CardContent>
@@ -310,29 +323,27 @@ export function Timer() {
           <CardHeader>
             <CardTitle>时间显示</CardTitle>
             <CardDescription>
-              {mode === "countdown" ? "倒计时剩余时间" : "已用时间"}
+              {mode === 'countdown' ? '倒计时剩余时间' : '已用时间'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* 大时间显示 */}
             <div className="text-center">
-              <div className="text-6xl font-mono font-bold mb-4">
-                {formatTime(currentTime)}
-              </div>
+              <div className="text-6xl font-mono font-bold mb-4">{formatTime(currentTime)}</div>
 
               {/* 进度条 */}
               <div className="space-y-2">
                 <Progress value={progress} className="h-2" />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{mode === "countdown" ? "剩余" : "已用"}</span>
+                  <span>{mode === 'countdown' ? '剩余' : '已用'}</span>
                   <span>
-                    {mode === "countdown"
+                    {mode === 'countdown'
                       ? `${Math.floor(timeLeft / 60)}:${(timeLeft % 60)
                           .toString()
-                          .padStart(2, "0")}`
+                          .padStart(2, '0')}`
                       : `${Math.floor(elapsedTime / 60)}:${(elapsedTime % 60)
                           .toString()
-                          .padStart(2, "0")}`}
+                          .padStart(2, '0')}`}
                   </span>
                 </div>
               </div>
@@ -341,16 +352,16 @@ export function Timer() {
             {/* 状态指示 */}
             <div className="flex justify-center">
               <Badge
-                variant={isRunning ? "default" : "secondary"}
-                className={isRunning ? "bg-green-100 text-green-800" : ""}
+                variant={isRunning ? 'default' : 'secondary'}
+                className={isRunning ? 'bg-green-100 text-green-800' : ''}
               >
-                {isRunning ? "运行中" : "已停止"}
+                {isRunning ? '运行中' : '已停止'}
               </Badge>
             </div>
 
             {/* 模式信息 */}
             <div className="text-center text-sm text-muted-foreground">
-              {mode === "countdown" ? (
+              {mode === 'countdown' ? (
                 <p>倒计时模式：从 {customMinutes} 分钟开始倒计时</p>
               ) : (
                 <p>秒表模式：记录经过的时间</p>
